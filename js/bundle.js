@@ -95,13 +95,13 @@ __webpack_require__.r(__webpack_exports__);
 
 
 class Search {
-    constructor(input, url, navList) {
-        this.url = url;
+    constructor(input, apiUrl, navList) {
+        this.apiUrl = apiUrl;
         this.input = input;
         this.navList = navList;
         this.repositoryList = repositoryList;
 
-        this.event = this.debounce(this.keyUp, 150);
+        this.event = this.debounce(this.eventKeyUp, 150);
 
         input.addEventListener("keyup", this.event.bind(this));
     }
@@ -115,10 +115,10 @@ class Search {
         }
     }
 
-    async keyUp() {
+    async eventKeyUp() {
         if (this.input.value != "") {
             let myQuery = `?q=${this.input.value}&sort=stars&order=desc&per_page=5`
-            let response = await fetch(this.url + myQuery, {
+            let response = await fetch(this.apiUrl + myQuery, {
                 headers: {
                     'accept': 'application/vnd.github+json', 
                     'Authorization': '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'
@@ -127,101 +127,87 @@ class Search {
 
             if (response.ok) {
                 let data = await response.json();
-                this.generateResult(await data.items);
+                this.generateNavList(await data.items);
             }
         }
     }
 
-    generateResult(data) {
+    generateNavList(data) {
         if (data) {
-            this.clearResult(this.navList);
+            this.clearNavList(this.navList);
             
             for (let i = 0; i < data.length; i++) {
-                this.navList.append(this.createResultElement(data[i]));
+                this.navList.append(this.generateElementNavList(data[i]));
             }
         }
     }
 
-    createResultElement(data) {
+    generateElementNavList(data) {
         let name = data.name;
         let owner = data.owner.login;
         let stars = data.stargazers_count;
 
-        let result = document.createElement("li");
+        let NavElementNav = document.createElement("li");
 
-        result.classList.add("nav__item");
+        NavElementNav.classList.add("nav__item");
 
-        result.dataset.name = name;
-        result.dataset.owner = owner;
-        result.dataset.stars = stars;
+        NavElementNav.dataset.name = name;
+        NavElementNav.dataset.owner = owner;
+        NavElementNav.dataset.stars = stars;
 
-        result.insertAdjacentText("beforeend", name);
+        NavElementNav.insertAdjacentText("beforeend", name);
 
-        result.addEventListener("click", this.addrepository.bind(this));
+        NavElementNav.addEventListener("click", this.eventAddRepositoryToList.bind(this));
 
-        return result;
+        return NavElementNav;
     }
 
-    addrepository(event) {
-        this.clearResult(this.navList);
+    eventAddRepositoryToList(event) {
+        this.clearNavList(this.navList);
         this.input.value = "";
         
-        this.repositoryList.append(this.createrepositoryElement(event.target));
+        this.repositoryList.append(this.generateRepositoryToList(event.target));
     }
 
-    createrepositoryElement(data) {
-        let result = document.createElement("li");
-        result.classList.add("repository__item");
+    generateRepositoryToList(data) {
+        let RepositoryElement = document.createElement("li");
+        RepositoryElement.classList.add("repository__item");
 
-        let textField = document.createElement("div");
-        textField.classList.add("repository__info");
+        RepositoryElement.insertAdjacentHTML("afterbegin", `
+            <div class="repository__info">
+                <p class="repository__text">Name: <span>${data.dataset.name}</span></p>
+                <p class="repository__text">Owner: <span>${data.dataset.owner}</span></p>
+                <p class="repository__text">Stars: <span>${data.dataset.stars}</span></p>
+            </div>
+        `);
 
-        let listText = ['Name', 'Owner', 'Stars'];
-        let listTextData = [data.dataset.name, data.dataset.owner, data.dataset.stars];
+        let btnRemoveRepository = document.createElement("button");
+        btnRemoveRepository.classList.add('repository__remove');
 
-        for (let i = 0; i < listText.length; i++) {
-            let text = document.createElement("p");
-            text.classList.add("repository__text");
+        btnRemoveRepository.addEventListener("click", this.eventRemoveRepository.bind(this));
 
-            let span = document.createElement("span");
-            span.classList.add("repository__name");
-            span.insertAdjacentText("beforeend", listTextData[i]);
-            text.append(span);
+        RepositoryElement.append(btnRemoveRepository);
 
-            text.insertAdjacentText("afterbegin", `${listText[i]}: `);
-
-            textField.append(text);
-        }
-
-        result.append(textField);
-
-        let removeBtn = document.createElement("button");
-        removeBtn.classList.add('repository__remove');
-
-        removeBtn.addEventListener("click", this.removeRepository.bind(this));
-
-        result.append(removeBtn);
-
-        return result;
+        return RepositoryElement;
     }
 
     // remove elements
 
-    clearResult(list) {
+    clearNavList(list) {
         list.querySelectorAll("*").forEach(el => el.remove());
     }
 
-    removeRepository(event) {
+    eventRemoveRepository(event) {
         event.target.parentElement.remove();
     }
 }
 
-let url = "https://api.github.com/search/repositories";
+let apiUrl = "https://api.github.com/search/repositories";
 let input = document.getElementsByClassName("nav__input")[0];
 let navList = document.getElementsByClassName("nav__list")[0];
 let repositoryList = document.getElementsByClassName("repository__list")[0];
 
-new Search(input, url, navList, repositoryList);
+new Search(input, apiUrl, navList, repositoryList);
 
 })();
 
